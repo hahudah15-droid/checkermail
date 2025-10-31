@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LOCO CHECKER MAIL</title>
+  <style>
+    :root{--accent:#ff5a5f;--bg:#0f1720;--card:#0b1220;--muted:#9aa6b2}
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Arial; margin:0; background:linear-gradient(180deg,#071021 0%, #0b1220 100%); color:#e6eef6; padding:24px}
+    .wrap{max-width:980px;margin:0 auto}
+    header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+    .logo{width:54px;height:54px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff}
+    h1{margin:0;font-size:20px}
+    p.lead{margin:4px 0 18px;color:var(--muted);font-size:13px}
+    .card{background:rgba(255,255,255,0.02);padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.6);margin-bottom:12px}
+    textarea{width:100%;min-height:140px;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit;font-family:monospace}
+    label{display:block;font-size:13px;margin-bottom:8px;color:var(--muted)}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .col{flex:1;min-width:220px}
+    button{background:var(--accent);color:white;padding:10px 14px;border-radius:8px;border:0;cursor:pointer;font-weight:600}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+    table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left}
+    th{font-weight:700;color:var(--muted);font-size:12px}
+    .small{font-size:12px;color:var(--muted)}
+    .status-ok{color:#7cf27c;font-weight:700}
+    .status-no{color:#ff7b7b;font-weight:700}
+    .status-unknown{color:#f5d76e;font-weight:700}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    .hint{font-size:12px;color:var(--muted);margin-top:8px}
+    .api-input{display:flex;gap:8px;align-items:center}
+    .api-input input{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+    .loader{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.12);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;vertical-align:middle}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    footer{margin-top:18px;color:var(--muted);font-size:12px;text-align:center}
+    @media (max-width:600px){header{flex-direction:column;align-items:flex-start}.row{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">LC</div>
+      <div>
+        <h1>LOCO CHECKER MAIL</h1>
+        <p class="lead">Cepat cek format email + MX + Gravatar. (Opsional: gunakan API verifikasi jika punya)</p>
+      </div>
+    </header>
+
+    <div class="card">
+      <label for="emails">Masukkan banyak email (baris baru / koma / spasi):</label>
+      <textarea id="emails" placeholder="contoh: user1@mail.com&#10;user2@mail.co"></textarea>
+
+      <div style="margin-top:10px" class="row">
+        <div class="col">
+          <label><input type="checkbox" id="checkMx" checked> Coba cek MX record domain</label>
+        </div>
+        <div class="col">
+          <label><input type="checkbox" id="checkGravatar" checked> Cek Gravatar (indikasi terdaftar)</label>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label>Optional: Gunakan Email Verification API (masukkan URL template, ganti email dengan <code>{email}</code>)</label>
+        <div class="api-input">
+          <input id="apiTemplate" placeholder="Contoh: https://api.example.com/verify?key=APIKEY&email={email}" />
+          <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="useApi"> Gunakan</label>
+        </div>
+        <div class="hint">Tidak punya API? biarkan kosong — pengecekan tetap berjalan dengan validasi & Gravatar & MX (jika tersedia).</div>
+      </div>
+
+      <div style="margin-top:12px" class="controls">
+        <button id="btnCheck">Check sekarang</button>
+        <button id="btnClear" class="ghost">Bersihkan</button>
+        <button id="btnCopy" class="ghost">Copy CSV</button>
+        <button id="btnDownload" class="ghost">Download CSV</button>
+        <div id="busy" style="margin-left:auto;align-self:center;display:none"><span class="loader"></span> <span class="small">Processing...</span></div>
+      </div>
+    </div>
+
+    <div class="card" id="resultsCard" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <strong>Hasil</strong>
+        <div class="small" id="summary"></div>
+      </div>
+      <div style="overflow:auto;max-height:420px;margin-top:10px">
+        <table id="resultsTable">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Format</th>
+              <th>MX</th>
+              <th>Gravatar</th>
+              <th>API</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer>LOCO CHECKER MAIL — simpel & cepat. Jika butuh cek SMTP/real-time deliverability, gunakan layanan verification pihak ketiga (API key diperlukan).</footer>
+  </div>
+
+  <script>
+    // ---------- helper: parse input ----------
+    function parseEmails(input) {
+      if (!input) return [];
+      // split by newline, comma, or whitespace
+      const parts = input.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+      // also split items that contain spaces
+      let out = [];
+      parts.forEach(p=>{
+        p.split(/\s+/).forEach(q=>{
+          q = q.trim();
+          if(q) out.push(q);
+        });
+      });
+      // unique
+      return [...new Set(out)];
+    }
+
+    // ---------- email format check ----------
+    function isEmailFormat(email) {
+      // conservative RFC-ish regex (not perfect but fine for basic validation)
+      const re = /^[a-zA-Z0-9._%+\-']+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+      return re.test(email);
+    }
+
+    // ---------- md5 function (small implementation) ----------
+    // Source: minimal JS MD5 (public domain-ish). Enough for gravatar hash.
+    // Adapted for brevity.
+    function md5cycle(x, k) {
+      let [a,b,c,d]=x;
+      a = ff(a,b,c,d,k[0],7,-680876936);
+      d = ff(d,a,b,c,k[1],12,-389564586);
+      c = ff(c,d,a,b,k[2],17,606105819);
+      b = ff(b,c,d,a,k[3],22,-1044525330);
+      a = ff(a,b,c,d,k[4],7,-176418897);
+      d = ff(d,a,b,c,k[5],12,1200080426);
+      c = ff(c,d,a,b,k[6],17,-1473231341);
+      b = ff(b,c,d,a,k[7],22,-45705983);
+      a = ff(a,b,c,d,k[8],7,1770035416);
+      d = ff(d,a,b,c,k[9],12,-1958414417);
+      c = ff(c,d,a,b,k[10],17,-42063);
+      b = ff(b,c,d,a,k[11],22,-1990404162);
+      a = ff(a,b,c,d,k[12],7,1804603682);
+      d = ff(d,a,b,c,k[13],12,-40341101);
+      c = ff(c,d,a,b,k[14],17,-1502002290);
+      b = ff(b,c,d,a,k[15],22,1236535329);
+      a = gg(a,b,c,d,k[1],5,-165796510);
+      d = gg(d,a,b,c,k[6],9,-1069501632);
+      c = gg(c,d,a,b,k[11],14,643717713);
+      b = gg(b,c,d,a,k[0],20,-373897302);
+      a = gg(a,b,c,d,k[5],5,-701558691);
+      d = gg(d,a,b,c,k[10],9,38016083);
+      c = gg(c,d,a,b,k[15],14,-660478335);
+      b = gg(b,c,d,a,k[4],20,-405537848);
+      a = gg(a,b,c,d,k[9],5,568446438);
+      d = gg(d,a,b,c,k[14],9,-1019803690);
+      c = gg(c,d,a,b,k[3],14,-187363961);
+      b = gg(b,c,d,a,k[8],20,1163531501);
+      a = gg(a,b,c,d,k[13],5,-1444681467);
+      d = gg(d,a,b,c,k[2],9,-51403784);
+      c = gg(c,d,a,b,k[7],14,1735328473);
+      b = gg(b,c,d,a,k[12],20,-1926607734);
+      a = hh(a,b,c,d,k[5],4,-378558);
+      d = hh(d,a,b,c,k[8],11,-2022574463);
+      c = hh(c,d,a,b,k[11],16,1839030562);
+      b = hh(b,c,d,a,k[14],23,-35309556);
+      a = hh(a,b,c,d,k[1],4,-1530992060);
+      d = hh(d,a,b,c,k[4],11,1272893353);
+      c = hh(c,d,a,b,k[7],16,-155497632);
+      b = hh(b,c,d,a,k[10],23,-1094730640);
+      a = hh(a,b,c,d,k[13],4,681279174);
+      d = hh(d,a,b,c,k[0],11,-358537222);
+      c = hh(c,d,a,b,k[3],16,-722521979);
+      b = hh(b,c,d,a,k[6],23,76029189);
+      a = hh(a,b,c,d,k[9],4,-640364487);
+      d = hh(d,a,b,c,k[12],11,-421815835);
+      c = hh(c,d,a,b,k[15],16,530742520);
+      b = hh(b,c,d,a,k[2],23,-995338651);
+      a = ii(a,b,c,d,k[0],6,-198630844);
+      d = ii(d,a,b,c,k[7],10,1126891415);
+      c = ii(c,d,a,b,k[14],15,-1416354905);
+      b = ii(b,c,d,a,k[5],21,-57434055);
+      a = ii(a,b,c,d,k[12],6,1700485571);
+      d = ii(d,a,b,c,k[3],10,-1894986606);
+      c = ii(c,d,a,b,k[10],15,-1051523);
+      b = ii(b,c,d,a,k[1],21,-2054922799);
+      a = ii(a,b,c,d,k[8],6,1873313359);
+      d = ii(d,a,b,c,k[15],10,-30611744);
+      c = ii(c,d,a,b,k[6],15,-1560198380);
+      b = ii(b,c,d,a,k[13],21,1309151649);
+      a = ii(a,b,c,d,k[4],6,-145523070);
+      d = ii(d,a,b,c,k[11],10,-1120210379);
+      c = ii(c,d,a,b,k[2],15,718787259);
+      b = ii(b,c,d,a,k[9],21,-343485551);
+      x[0] = (x[0]+a) | 0;
+      x[1] = (x[1]+b) | 0;
+      x[2] = (x[2]+c) | 0;
+      x[3] = (x[3]+d) | 0;
+    }
+    function cmn(q,a,b,x,s,t){a = (a + q + x + t) | 0; return ((a<<s)|(a>>> (32-s))) + b}
+    function ff(a,b,c,d,x,s,t){return cmn((b & c) | ((~b) & d),a,b,x,s,t)}
+    function gg(a,b,c,d,x,s,t){return cmn((b & d) | (c & (~d)),a,b,x,s,t)}
+    function hh(a,b,c,d,x,s,t){return cmn(b ^ c ^ d,a,b,x,s,t)}
+    function ii(a,b,c,d,x,s,t){return cmn(c ^ (b | (~d)),a,b,x,s,t)}
+    function md5blk(s){ // convert string to array of little-endian words
+      let i, out = [];
+      for(i=0;i<64;i+=4){
+        out[i>>2] = s.charCodeAt(i) + (s.charCodeAt(i+1)<<8) + (s.charCodeAt(i+2)<<16) + (s.charCodeAt(i+3)<<24);
+      }
+      return out;
+    }
+    function md51(s){
+      let n=s.length, state=[1732584193,-271733879,-1732584194,271733878], i;
+      for(i=64;i<=n;i+=64) md5cycle(state, md5blk(s.slice(i-64,i)));
+      let tail = s.slice(i-64); // remaining
+      let tmp = new Array(16).fill(0);
+      for(let j=0;j<tail.length;j++) tmp[j>>2] |= tail.charCodeAt(j) << ((j%4)<<3);
+      tmp[tail.length>>2] |= 0x80 << ((tail.length%4)<<3);
+      if(tail.length > 55){ md5cycle(state, tmp); tmp = new Array(16).fill(0); }
+      tmp[14] = n*8;
+      md5cycle(state, tmp);
+      return state;
+    }
+    function rhex(n){ let s='', j; for(j=0;j<4;j++) s += ('0'+((n>> (j*8+4)) & 0xF).toString(16)).slice(-1) + ('0'+((n>> (j*8)) & 0xF).toString(16)).slice(-1); return s; }
+    function md5(s){ let res=md51(s); return rhex(res[0]) + rhex(res[1]) + rhex(res[2]) + rhex(res[3]); }
+
+    // ---------- Gravatar check ----------
+    async function hasGravatar(email) {
+      const hash = md5(email.trim().toLowerCase());
+      const url = 'https://www.gravatar.com/avatar/' + hash + '?d=404';
+      try {
+        const r = await fetch(url, { method: 'HEAD' }); // HEAD to only check existence
+        return r.ok;
+      } catch (e) {
+        return null; // unknown
+      }
+    }
+
+    // ---------- MX check via Cloudflare DOH ----------
+    async function checkMx(domain) {
+      const url = 'https://cloudflare-dns.com/dns-query?name=' + encodeURIComponent(domain) + '&type=MX';
+      try {
+        const r = await fetch(url, { headers: { Accept: 'application/dns-json' } });
+        if (!r.ok) return null;
+        const j = await r.json();
+        if (j && j.Answer && j.Answer.length) return true;
+        // Some domains return Authority, try additional check -> treat as unknown
+        return false;
+      } catch (e) {
+        return null; // unknown / blocked
+      }
+    }
+
+    // ---------- helper: run optional API verification ----------
+    async function runApiCheck(template, email) {
+      try {
+        const url = template.replaceAll('{email}', encodeURIComponent(email));
+        const r = await fetch(url);
+        if (!r.ok) return { error: 'HTTP ' + r.status };
+        const j = await r.json().catch(()=>null);
+        return { ok: true, data: j };
+      } catch (e) {
+        return { error: String(e) };
+      }
+    }
+
+    // ---------- CSV helpers ----------
+    function rowsToCSV(rows) {
+      const esc = v => {
+        if (v===null||v===undefined) return '';
+        const s = String(v).replace(/"/g,'""');
+        return `"${s}"`;
+      };
+      const hdr = ['email','format','mx','gravatar','api'];
+      let out = hdr.join(',') + '\n';
+      rows.forEach(r=>{
+        out += [r.email, r.format, r.mx, r.gravatar, r.api].map(esc).join(',') + '\n';
+      });
+      return out;
+    }
+
+    // ---------- Main UI ----------
+    const btnCheck = document.getElementById('btnCheck');
+    const btnClear = document.getElementById('btnClear');
+    const btnCopy = document.getElementById('btnCopy');
+    const btnDownload = document.getElementById('btnDownload');
+    const emailsInput = document.getElementById('emails');
+    const resultsCard = document.getElementById('resultsCard');
+    const resultsBody = document.querySelector('#resultsTable tbody');
+    const busy = document.getElementById('busy');
+    const summary = document.getElementById('summary');
+
+    let lastRows = [];
+
+    btnClear.addEventListener('click', ()=>{
+      emailsInput.value = '';
+      resultsCard.style.display = 'none';
+      resultsBody.innerHTML = '';
+    });
+
+    btnCopy.addEventListener('click', ()=>{
+      if (!lastRows.length) return alert('Belum ada hasil untuk disalin.');
+      const csv = rowsToCSV(lastRows);
+      navigator.clipboard.writeText(csv).then(()=> alert('CSV disalin ke clipboard.'));
+    });
+
+    btnDownload.addEventListener('click', ()=>{
+      if (!lastRows.length) return alert('Belum ada hasil untuk di-download.');
+      const csv = rowsToCSV(lastRows);
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'loco-checker-mail-results.csv'; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    btnCheck.addEventListener('click', async ()=>{
+      const raw = emailsInput.value;
+      const items = parseEmails(raw);
+      if (!items.length) return alert('Masukkan minimal 1 email.');
+      const doMx = document.getElementById('checkMx').checked;
+      const doGr = document.getElementById('checkGravatar').checked;
+      const useApi = document.getElementById('useApi').checked;
+      const apiTemplate = document.getElementById('apiTemplate').value.trim();
+
+      if (useApi && (!apiTemplate || !apiTemplate.includes('{email}'))) {
+        return alert('Jika mengaktifkan API, masukkan template URL yang mengandung {email}.');
+      }
+
+      resultsCard.style.display = 'block';
+      resultsBody.innerHTML = '';
+      busy.style.display = 'inline-flex';
+      lastRows = [];
+      summary.textContent = `0 / ${items.length}`;
+
+      // Cache MX per domain to avoid repeated queries
+      const mxCache = {};
+      let done = 0;
+
+      for (const email of items) {
+        const row = { email, format: '', mx: '', gravatar: '', api: '' };
+
+        // format
+        row.format = isEmailFormat(email) ? 'OK' : 'Invalid';
+
+        // MX
+        if (doMx && row.format === 'OK') {
+          const domain = email.split('@').pop();
+          if (mxCache[domain] !== undefined) {
+            row.mx = mxCache[domain] ? 'Found' : 'Not found';
+          } else {
+            row.mx = 'Checking...';
+            // render intermediate
+            appendRow(row);
+            const mx = await checkMx(domain);
+            mxCache[domain] = (mx === true) ? true : (mx === false ? false : null);
+            if (mx === true) row.mx = 'Found';
+            else if (mx === false) row.mx = 'No MX';
+            else row.mx = 'Unknown';
+          }
+        } else {
+          row.mx = doMx ? 'Skipped' : 'Disabled';
+        }
+
+        // Gravatar
+        if (doGr && row.format === 'OK') {
+          row.gravatar = 'Checking...';
+          appendRow(row);
+          const g = await hasGravatar(email);
+          row.gravatar = g === true ? 'Yes' : (g === false ? 'No' : 'Unknown');
+        } else {
+          row.gravatar = doGr ? 'Skipped' : 'Disabled';
+        }
+
+        // API
+        if (useApi && row.format === 'OK') {
+          row.api = 'Checking...';
+          appendRow(row);
+          const res = await runApiCheck(apiTemplate, email);
+          if (res.error) row.api = 'Err: ' + res.error;
+          else {
+            // try to show some typical fields if exist
+            if (res.data && typeof res.data === 'object') {
+              // common fields: format_valid, smtp_check, disposable, score, mx_found
+              const keys = ['format_valid','smtp_check','mx_found','disposable','score','did_you_mean','result','status'];
+              let parts = [];
+              for (const k of keys) if (res.data[k] !== undefined) parts.push(`${k}=${JSON.stringify(res.data[k])}`);
+              if (parts.length) row.api = parts.join(' | ');
+              else row.api = JSON.stringify(res.data).slice(0,120);
+            } else row.api = 'OK';
+          }
+        } else {
+          row.api = useApi ? 'Skipped' : 'Disabled';
+        }
+
+        // final push and render
+        updateRow(row);
+        lastRows.push({
+          email: row.email,
+          format: row.format,
+          mx: row.mx,
+          gravatar: row.gravatar,
+          api: row.api
+        });
+
+        done++;
+        summary.textContent = `${done} / ${items.length}`;
+      }
+
+      busy.style.display = 'none';
+    });
+
+    // ---------- Table render helpers ----------
+    function appendRow(r) {
+      const tr = document.createElement('tr');
+      tr.dataset.email = r.email;
+      tr.innerHTML = `
+        <td>${escapeHtml(r.email)}</td>
+        <td class="small">${escapeHtml(r.format)}</td>
+        <td class="small">${escapeHtml(r.mx)}</td>
+        <td class="small">${escapeHtml(r.gravatar)}</td>
+        <td class="small">${escapeHtml(r.api)}</td>
+      `;
+      resultsBody.appendChild(tr);
+    }
+    function updateRow(r) {
+      // find existing row by email, update or append
+      let tr = resultsBody.querySelector('tr[data-email="'+cssEscape(r.email)+'"]');
+      if (!tr) {
+        appendRow(r); return;
+      }
+      tr.cells[1].textContent = r.format;
+      tr.cells[2].textContent = r.mx;
+      tr.cells[3].textContent = r.gravatar;
+      tr.cells[4].textContent = r.api;
+      // styling
+      styleCell(tr.cells[1], r.format === 'OK' ? 'ok' : 'no');
+      styleCell(tr.cells[2], r.mx && r.mx.toLowerCase().includes('found') ? 'ok' : (r.mx && (r.mx.toLowerCase().includes('no')||r.mx.toLowerCase().includes('not')) ? 'no' : 'unknown'));
+      styleCell(tr.cells[3], r.gravatar && r.gravatar.toLowerCase()==='yes' ? 'ok' : (r.gravatar && r.gravatar.toLowerCase()==='no' ? 'no' : 'unknown'));
+    }
+    function styleCell(cell, status) {
+      cell.classList.remove('status-ok','status-no','status-unknown');
+      if (status === 'ok') cell.classList.add('status-ok');
+      else if (status === 'no') cell.classList.add('status-no');
+      else cell.classList.add('status-unknown');
+    }
+
+    function escapeHtml(s) {
+      if (s===null||s===undefined) return '';
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    function cssEscape(str) {
+      return str.replace(/([ #;?%&,.+*~\':"!^$[\]()=>|\/@])/g,'\\$1');
+    }
+  </script>
+</body>
+</html>
